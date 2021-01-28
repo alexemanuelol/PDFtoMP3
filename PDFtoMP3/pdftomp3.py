@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-"""  """
-
+""" PDFtoMP3 """
 
 __author__ = "alexemanuelol"
-__dependencies__ = ["pdfminer", "gtts"]
+__dependencies__ = ["pdfminer", "pyttsx3"]
 
 import os
 import getopt
+import pyttsx3
 import sys
 
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
@@ -16,10 +16,8 @@ from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from io import StringIO
 
-from gtts import gTTS
 
 class PDFtoMP3():
-    """  """
 
     def __init__(self, path = None):
         """ Init. """
@@ -41,14 +39,26 @@ class PDFtoMP3():
         self.showpageno = True
         self.laparams = LAParams()
 
+        # TTS options
+        self.rate = 150
+        self.volume = 1.0
+
         self.create_handlers()
 
 
     def create_handlers(self):
-        """ Create the pdfminer handlers. """
+        """ Create the pdfminer/tts handlers. """
+        # pdfminer handlers
         self.resourceManager = PDFResourceManager(caching=self.caching)
         self.returnString = StringIO()
         self.device = TextConverter(self.resourceManager, self.returnString, laparams=self.laparams)
+
+        # TTS engine
+        self.engine = pyttsx3.init()
+        self.engine.setProperty('rate', self.rate)
+        self.engine.setProperty('volume', self.volume)
+        voices = self.engine.getProperty('voices')
+        self.engine.setProperty('voice', voices[0].id)
 
 
     def destroy_handlers(self):
@@ -82,6 +92,11 @@ class PDFtoMP3():
                 interpreter.process_page(page)
 
         self.text = self.returnString.getvalue()
+
+        # Avoid interrupts in text, newlines not important
+        self.text = self.text.replace(".\n", ". ")
+        self.text = self.text.replace("\n", "")
+
         self.destroy_handlers()
 
     def export_to_file(self, path = None):
@@ -112,8 +127,9 @@ class PDFtoMP3():
         if self.text == "" or self.text == None:
             raise Exception("self.text is empty.")
 
-        oFile = gTTS(text=self.text, lang='en')
-        oFile.save(path)
+        self.engine.save_to_file(self.text, path)
+        self.engine.runAndWait()
+        self.engine.stop()
 
     def __is_file_valid(self, path):
         """ Check to see if the file path is valid. """
@@ -125,7 +141,7 @@ class PDFtoMP3():
 def usage(name):
     """ Describes the usage of the script. """
     print( f'Usage: {name} [-h --help Help] [-P password] [-O output_dir] [-c encoding] [-R rotation]'
-            ' [-p pagenos] [-m maxpages] [-S] [-C] [-n] [-A] [-V] [-M char_margin]'
+            ' [-p pagenos] [-m maxpages] [-r rate] [-v volume] [-S] [-C] [-n] [-A] [-V] [-M char_margin]'
             ' [-L line_margin] [-W word_margin] [-F boxes_flow] [-d] input.pdf ...')
     return 100
 
@@ -134,7 +150,7 @@ if __name__ == "__main__":
     obj = PDFtoMP3()
 
     try:
-        (opts, args) = getopt.getopt(sys.argv[1:], 'hhelp:P:O:R:p:m:SCnAVM:W:L:F:')
+        (opts, args) = getopt.getopt(sys.argv[1:], 'hhelp:P:O:R:p:m:SCnAVM:W:L:F:r:v')
     except getopt.GetoptError:
         usage(sys.argv[0])
 
@@ -154,6 +170,8 @@ if __name__ == "__main__":
         elif k == '-W': obj.laparams.word_margin = float(v)
         elif k == '-L': obj.laparams.line_margin = float(v)
         elif k == '-F': obj.laparams.boxes_flow = float(v)
+        elif k == '-r': obj.rate = int(v)
+        elif k == '-v': obj.volume = float(v)
 
     if len(args) == 0 or not os.path.exists(args[0]):
         raise Exception("Path is not valid: " + args[0])
