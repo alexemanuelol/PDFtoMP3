@@ -4,7 +4,7 @@
 
     Description:    Enables cropping of a PDF file, choosing which pages to be removed.
 
-    parameters:     -p, input path,     Path to the input PDF file.
+    Parameters:     -p, input path,     Path to the input PDF file.
                     -f, pageFilter,     A list of numbers indication which pages to be removed (first index = 1).
                                         Format:     1-3 (Pages 1 to 3)
                                                     5 (Page 5)
@@ -38,7 +38,7 @@ class PDFCrop():
         self.__pageFilter = pageFilter
 
     def set_path(self, path):
-        """ Set the path to the .pdf file. """
+        """ Set the path to the PDF file. """
         self.__is_file_valid(path)
         self.__path = path
 
@@ -49,7 +49,7 @@ class PDFCrop():
         self.__cropped = False
 
     def read_pdf(self, path = None):
-        """ Read the .pdf file. """
+        """ Read the PDF file. """
         if path != None:
             self.__is_file_valid(path)
             self.__path = path
@@ -63,7 +63,7 @@ class PDFCrop():
     def crop_pdf(self):
         """ Remove the pages in self.__pageFilter. """
         if self.__infile == None:
-            raise Exception('.pdf file is not read.')
+            raise Exception('PDF file is not read.')
 
         if self.__pageFilter == [-1]:
             raise Exception('self.__pageFiler is empty, please select pages to be removed.')
@@ -77,7 +77,7 @@ class PDFCrop():
     def write_pdf(self, path = None):
         """ Writes the cropped file. """
         if self.__outfile == None:
-            raise Exception('.pdf file is not read.')
+            raise Exception('PDF file is not read.')
 
         if path == None:
             path = self.__path.replace('.pdf', '_cropped.pdf')
@@ -90,7 +90,7 @@ class PDFCrop():
             raise Exception('Path does not exist:\n' + str(directory))
 
         if not self.__cropped:
-            raise Exception('.pdf file have not yet been cropped.')
+            raise Exception('PDF file have not yet been cropped.')
 
         with open(path, 'wb') as f:
             self.__outfile.write(f)

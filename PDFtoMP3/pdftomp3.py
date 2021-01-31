@@ -1,6 +1,30 @@
 #!/usr/bin/env python3
 
-""" PDFtoMP3 """
+""" PDFtoMP3
+
+    Description:    Converts a PDF file to a MP3 file.
+
+    Parameters:     -h, --help, help,       Print's usage of the script.
+                    -P, password            The password for the PDF file.
+                    -O, output path,        The output path of the MP3 file.
+                    -R, rotation,           Rotation of the pages.
+                    -p, page numbers,       Pages to be extracted, default it extract text from all pages.
+                    -m, max pages,          Max pages to be read.
+                    -C, caching,            Suppress object caching.
+                    -n, layout,             Suppress layout analysis.
+                    -A, all text,           Force layout analysis for all the text strings, including text in figures.
+                    -V, Vertical read,      Allow vertical read.
+                    -M, char margin,        Character margin.
+                    -W, word margin,        Word margin.
+                    -L, line margin,        Line margin.
+                    -F, boxes flow,         x and y position of a text matters when determining a text order.
+                    -r, voice rate,         The speed in which the voice is talking.
+                    -v, volume,             The volumne of the voice.
+                    -f, page filter,        Pages to be ignored (first index = 1)
+                                            Format:     1-3 (Pages 1 to 3)
+                                                        5 (Page 5)
+
+"""
 
 __author__ = "alexemanuelol"
 __dependencies__ = ["pdfminer", "pyttsx3"]
@@ -24,8 +48,10 @@ class PDFtoMP3():
         if path != None:
             self.__is_file_valid(path)
             self.fName = os.path.basename(path).replace(".pdf", "")
+
         self.path = path
         self.text = ""
+        self.__pageFilter = [-1]
 
         # Input options
         self.password = b''
@@ -69,27 +95,32 @@ class PDFtoMP3():
 
 
     def set_path(self, path):
-        """ Set the path variable to the .pdf file. """
+        """ Set the path variable to the PDF file. """
         self.__is_file_valid(path)
         self.fName = os.path.basename(path).replace(".pdf", "")
         self.path = path
 
+    def set_page_filter(self, pageFilter):
+        """ Set which pages that shouldn't be included in the end file. """
+        self.__is_filter_valid(pageFilter)
+        self.__pageFilter = pageFilter
 
     def extract_text_from_pdf(self):
-        """ Extract the text from the .pdf file located in self.path and place it in self.text variable. """
+        """ Extract the text from the PDF file located in self.path and place it in self.text variable. """
         self.__is_file_valid(self.path)
         self.create_handlers()
 
         interpreter = PDFPageInterpreter(self.resourceManager, self.device)
         with open(self.path, 'rb') as fp:
-            for page in PDFPage.get_pages(  fp,
+            for i, page in enumerate(PDFPage.get_pages(  fp,
                                             self.pagenos,
                                             maxpages=self.maxpages,
                                             password=self.password,
                                             caching=self.caching,
-                                            check_extractable=True):
-                page.rotate = (page.rotate + self.rotation) % 360
-                interpreter.process_page(page)
+                                            check_extractable=True)):
+                if (i + 1) not in self.__pageFilter:
+                    page.rotate = (page.rotate + self.rotation) % 360
+                    interpreter.process_page(page)
 
         self.text = self.returnString.getvalue()
 
@@ -137,6 +168,15 @@ class PDFtoMP3():
             raise Exception("The path to the given file does not exist:\n" + path)
         if not path.endswith(".pdf"):
             raise Exception("The given file is not a .pdf file:\n" + path)
+        return True
+
+    def __is_filter_valid(self, pageFilter):
+        """ Check if the filter is valid. """
+        if not isinstance(pageFilter, list):
+            raise Exception('pageFilter is not a list:\n' + str(pageFilter))
+        elif not all(isinstance(x, int) for x in pageFilter):
+            raise Exception('Not all elements in the list is intergers:\n' + str(pageFilter))
+        return True
 
 def usage(name):
     """ Describes the usage of the script. """
@@ -154,10 +194,34 @@ if __name__ == "__main__":
     except getopt.GetoptError:
         usage(sys.argv[0])
 
+    filt = []
+    arguments = sys.argv
+    inFilter = False
+    for item in arguments:
+        if item == '-f':
+            inFilter = True
+            continue
+
+        if inFilter and item in [   '-h', '--help', '-P', '-O', '-R',
+                                    '-p', '-m', '-C', '-n', '-A', '-V',
+                                    '-M', '-W', '-L', '-F', '-r', '-v']:
+            break
+
+        if inFilter:
+            if '-' in item:
+                temp = item.split('-')
+                if len(temp) != 2:
+                    usage(arguments[0])
+                    exit()
+                for page in range(int(temp[0]), int(temp[1]) + 1):
+                    filt.append(int(page))
+            else:
+                filt.append(int(item))
+
     output = None
     for (k, v) in opts:
         if k == '-h' or k == '--help': usage(sys.argv[0]); exit()
-        if k == '-P': obj.password = v.encode('ascii')
+        elif k == '-P': obj.password = v.encode('ascii')
         elif k == '-O': output = v
         elif k == '-R': obj.rotation = int(v)
         elif k == '-p': obj.pagenos.update( int(x)-1 for x in v.split(',') )
@@ -175,7 +239,11 @@ if __name__ == "__main__":
 
     if len(args) == 0 or not os.path.exists(args[0]):
         raise Exception("Path is not valid: " + args[0])
+
     obj.set_path(args[0])
+
+    if filt:
+        obj.set_page_filter(filt)
 
     obj.extract_text_from_pdf()
 
