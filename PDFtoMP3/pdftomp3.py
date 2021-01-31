@@ -32,6 +32,7 @@ __dependencies__ = ["pdfminer", "pyttsx3"]
 import os
 import getopt
 import pyttsx3
+import re
 import sys
 
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
@@ -124,9 +125,8 @@ class PDFtoMP3():
 
         self.text = self.returnString.getvalue()
 
-        # Avoid interrupts in text, newlines not important
-        self.text = self.text.replace(".\n", ". ")
-        self.text = self.text.replace("\n", "")
+        self.text = re.sub(r"(?<!\n)\n{1}(?!\n)", " ", self.text)
+        self.text = self.text.replace("\n\n", "\n")
 
         self.destroy_handlers()
 
