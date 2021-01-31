@@ -53,6 +53,7 @@ class PDFtoMP3():
         self.path = path
         self.text = ""
         self.__pageFilter = [-1]
+        self.__maxRepeatedLines = 5
 
         # Input options
         self.password = b''
@@ -125,6 +126,11 @@ class PDFtoMP3():
 
         self.text = self.returnString.getvalue()
 
+        self.text = self.remove_repeated_lines(self.text)
+
+        #print(self.text)
+        #input()
+
         self.text = re.sub(r"(?<!\n)\n{1}(?!\n)", " ", self.text)
         self.text = self.text.replace("\n\n", "\n")
 
@@ -161,6 +167,23 @@ class PDFtoMP3():
         self.engine.save_to_file(self.text, path)
         self.engine.runAndWait()
         self.engine.stop()
+
+    def remove_repeated_lines(self, text):
+        """  """
+        splitText = text.split("\n")
+
+        items = dict()
+        for line in splitText:
+            if not line in items:
+                items[line] = 1
+            else:
+                items[line] += 1
+
+        for key, value in items.items():
+            if value > self.__maxRepeatedLines:
+                text = text.replace(key, "")
+
+        return text
 
     def __is_file_valid(self, path):
         """ Check to see if the file path is valid. """
