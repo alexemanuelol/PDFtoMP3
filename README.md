@@ -1,5 +1,5 @@
 # PDFtoMP3
-Simple application that converts a .pdf file to a .mp3 file.
+Converts a .pdf file to a .mp3 file. Basically identifies text within the .pdf file and using Text to Speech (TTS) library to export it into a .mp3 file.
 
 ## Clone and setup
 To clone the repository:
